@@ -1,5 +1,5 @@
 <template>
-  <div class="home">
+  <div class="home" ref="pdf">
     <el-select v-model="value" placeholder="请选择" class="selectPage" size="small">
       <el-option v-for="(item,index) in options" :key="item.value" :value="item.value" @click.native="toPage(item)">
       </el-option>
@@ -15,6 +15,7 @@
     <div class="add" @click="add()">
       <i class="el-icon-plus"></i>
     </div>
+    <button @click="handleExport()">生成pdf</button>
 
   </div>
 </template>
@@ -24,6 +25,7 @@
 import {nanoid} from 'nanoid'
 import CubeList from '@/components/CubeList.vue'
 import { Message } from 'element-ui';
+import { downloadPDF } from '../util/pdf'
 
 export default {
   name: 'HomeView',
@@ -77,6 +79,9 @@ watch:{
   }
 },
 methods: {
+  handleExport() {
+    downloadPDF(this.$refs.pdf)
+  },
   add(){//增加公式
     const algObj={id:nanoid(),alg:''};
     // console.log(algObj);
