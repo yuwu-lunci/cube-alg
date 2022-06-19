@@ -82,16 +82,6 @@
             <input type="text" ref="inp" v-show="isInput" v-model="algItem.alg" placeholder="R R' u u' M M' x x' "
                 @blur="show(algItem,$event)" />
             <p v-show="!isInput" @click="onFocus(true)">{{ showAlg||'点击输入公式' }}</p>
-            <!-- <button class="show" @click="show(algItem.alg)">
-                <svg class="icon" aria-hidden="true">
-                    <use xlink:href="#icon-mofang1"></use>
-                </svg>
-            </button>
-            <button class="refresh" >
-                <svg class="icon" aria-hidden="true">
-                    <use xlink:href="#icon-icon"></use>
-                </svg>
-            </button> -->
             <button @click="delAlg(algItem.id)" class="delete">
                 <i class="el-icon-delete-solid"></i>
             </button>
@@ -146,16 +136,24 @@ export default {
     methods: {
         showWord(value) {
             let algArr = this.algItem.alg.replace(/[, ]/g, "").split("");//去除空格
+            // if (algArr[0] == 2 || algArr[0] == "'") {//第一个值不能为2
+            //     algArr=[]
+            // }
             let newArr=[]
             while (algArr.length >= 1) {//把字符串修改为指定数组RUR'URUUR'=>["R","U","R'",'U',"R","U","U","R'"]
                 if (algArr[1] === "'") {
-                    newArr.push(algArr[0]+"'");
-                    algArr.splice(0, 2);
-                    // console.log(algArr);
-                } else if (algArr[1] === "2") {
-                    for (let i = 0; i < 2; i++) {
-                        newArr.push(algArr[0]);
+                    if (algArr[2] === '2') {
+                        newArr.push(algArr[0] + algArr[1] + '2');
+                        algArr.splice(0, 3);
+                    }else{
+                        newArr.push(algArr[0]+"'");
+                        algArr.splice(0, 2);
                     }
+                    // console.log(algArr);
+                } else if (algArr[1] === '2') {
+                    // for (let i = 0; i < 2; i++) {
+                        newArr.push(algArr[0]+'2');
+                    // }
                     algArr.splice(0, 2);
                 } else {
                     newArr.push(algArr[0]);
@@ -164,8 +162,17 @@ export default {
             }
             this.showAlg=''//input失去焦点后清空showalg
             newArr.map((val,index)=>{
-               let i= this.algWordCopy.indexOf(val)
-                val=value[i]//替换原来公式中的字母
+                let i= this.algWordCopy.indexOf(val)
+                if (i===-1) {
+                    // console.log(val.substr(0, 1));
+                    let j = this.algWordCopy.indexOf(val.substr(0, val.length-1))
+                    if (j!==-1) {
+                        val=value[j]+'2'//替换原来公式中的字母
+                    }
+                    
+                }else{
+                    val = value[i]
+                }
                 this.showAlg=this.showAlg+val//拼接
             })
         },
@@ -173,14 +180,14 @@ export default {
             this.isInput = !this.isInput;
                 if (e) {
                     this.$nextTick(function () {
-                        console.log(this.$refs);
+                        // console.log(this.$refs);
                         this.$refs.inp.focus();
                     })
                 }
         },
         delAlg(id) {
             this.deleteAlg(id);
-            console.log(id);
+            // console.log(id);
         },
         show(algItem,e){
             this.showWord(this.algWord2)//对p标签中公式进行操作
@@ -195,7 +202,7 @@ export default {
             let searchFlag = true;
             algArr.map((value) => {
                 //如果有reg字符以外的其他字符，searchFlag会变为false
-                if (reg.search(value) == -1) {
+                if (reg.search(value) == -1 || algArr[0] == 2 || algArr[0] == "'") {
                     searchFlag = false;
                 }
             });
@@ -219,10 +226,15 @@ export default {
             //将魔方公式逆序中，R改为R'，R'改为R,R2改为R,R
             while (algArr.length >= 1) {
                 if (algArr[1] === "'") {
-                    newArr.push(algArr[0]);
-                    algArr.splice(0, 2);
-                    // console.log(algArr);
-                    // break;
+                    if (algArr[2] === '2') {
+                        for (let i = 0; i < 2; i++) {
+                        newArr.push(algArr[0]);
+                        }
+                        algArr.splice(0, 3);
+                    } else {
+                        newArr.push(algArr[0]);
+                        algArr.splice(0, 2);
+                    }
                 } else if (algArr[1] === "2") {
                     for (let i = 0; i < 2; i++) {
                         newArr.push(algArr[0]);
@@ -383,34 +395,113 @@ export default {
                 }
             });
   
-},
+        },
 
-        //设置右边层顺时针转动 即R
-       right() {
-            //顶层转动会影响四个面颜色变化
-            let upColor = ["white", "orange", "yellow", "red"];
+        //设置中层顺时针转动M
+         middle() {
+            let upColor = ["red", "yellow", "orange", "white"];
             let colorNum = [
-                [8, 7, 6],
-                [0, 3, 6],
-                [6, 7, 8],
-                [6, 3, 0],
+                [1, 4, 7],
+                [5, 4, 3],
+                [7, 4, 1],
+                [3, 4, 5],
             ];
-            let moveAside = "rightAside";
-            let clockwise = "36785210";
-            this.changeColor(upColor, colorNum, moveAside, clockwise);
+            //每次转动颜色变化的函数
+             this.changeColor(upColor, colorNum, false, false);
+            //向每个小方块填充颜色的函数
+             this.showColor(this.colorData);
+        },
+        //设置中层逆时针转动M'
+        middleReserve() {
+            let upColor = ["red", "white", "orange", "yellow"];
+            let colorNum = [
+                [1, 4, 7],
+                [3, 4, 5],
+                [7, 4, 1],
+                [5, 4, 3],
+            ];
+            //每次转动颜色变化的函数
+            this.changeColor(upColor, colorNum, false, false);
+            //向每个小方块填充颜色的函数
             this.showColor(this.colorData);
         },
+        //设置S层顺时针转动
+        slice() {
+            let upColor = ["yellow", "blue", "white", "green"];
+            let colorNum = [
+                [1, 4, 7],
+                [7, 4, 1],
+                [7, 4, 1],
+                [1, 4, 7],
+            ];
+            this.changeColor(upColor, colorNum, false, false);
+            this.showColor(this.colorData);
+        },
+        //设置S层逆时针转动S'
+        sliceReserve() {
+            let upColor = ["yellow", "green", "white", "blue"];
+            let colorNum = [
+                [1, 4, 7],
+                [1, 4, 7],
+                [7, 4, 1],
+                [7, 4, 1],
+            ];
+            this.changeColor(upColor, colorNum, false, false);
+            this.showColor(this.colorData);
+        },
+        //设置E层顺时针转动
+        edge() {
+            let upColor = ["red", "blue", "orange", "green"];
+            let colorNum = [
+                [3, 4, 5],
+                [3, 4, 5],
+                [5, 4, 3],
+                [5, 4, 3],
+            ];
+            this.changeColor(upColor, colorNum, false, false);
+            this.showColor(this.colorData);
+        },
+        //设置E层逆时针转动E'
+        edgeReserve() {
+            let upColor = ["red", "green", "orange", "blue"];
+            let colorNum = [
+                [3, 4, 5],
+                [5, 4, 3],
+                [5, 4, 3],
+                [3, 4, 5],
+            ];
+            this.changeColor(upColor, colorNum, false, false);
+            this.showColor(this.colorData);
+        },
+
+        //设置顶层顺时针转动 即U
         up() {
+            //顶层转动会影响四个面颜色变化
+            /*
+                由于函数changeColor()中让颜色变化的循环是逆序的，
+                所以up虽然是实现顺时针转动，但下面upColor，colorNum，clockwise都是逆序的
+                */
             let upColor = ["green", "orange", "blue", "red"];
+            //将红绿橙蓝上层三个方块颜色数字化
+            //数字表示的是<div class="miniaside"></div>的序号
+            //upcolor要和colornum的顺序对应上
             let colorNum = [
                 [2, 1, 0], //
                 [2, 1, 0],
                 [0, 1, 2],
                 [0, 1, 2],
             ];
+            //保存转动的面，即顶层
             let moveAside = "upAside";
+            /*
+                每个面有9个div，正中心div序号是4，没有颜色变化，
+                由于每个面的方向受样式rotate影响，36785210有可能是顺时针，也可能是逆时针，具体div的顺序可以在控制台查看
+                */
             let clockwise = "36785210";
+
+            //每次转动颜色变化的函数
             this.changeColor(upColor, colorNum, moveAside, clockwise);
+            //向每个小方块填充颜色的函数
             this.showColor(this.colorData);
         },
         //设置顶层逆时针转动，即U'，
@@ -427,6 +518,51 @@ export default {
             this.changeColor(upColor, colorNum, moveAside, clockwise);
             this.showColor(this.colorData);
         },
+        //设置底层顺时针转动 即D
+        down() {
+            let upColor = ["green", "red", "blue", "orange"]; //["green", "orange", "blue", "red", "green"]
+            let colorNum = [
+                [8, 7, 6],
+                [6, 7, 8],
+                [6, 7, 8],
+                [8, 7, 6],
+            ];
+            let moveAside = "downAside";
+            let clockwise = "01258763";
+            this.changeColor(upColor, colorNum, moveAside, clockwise);
+            this.showColor(this.colorData);
+        },
+        //设置底层逆时针转动 即D'
+        downReserve() {
+            //顶层转动会影响四个面颜色变化
+            let upColor = ["green", "orange", "blue", "red"];
+            let colorNum = [
+                [8, 7, 6],
+                [8, 7, 6],
+                [6, 7, 8],
+                [6, 7, 8],
+            ];
+            let moveAside = "downAside";
+            let clockwise = "36785210";
+            this.changeColor(upColor, colorNum, moveAside, clockwise);
+            this.showColor(this.colorData);
+        },
+        //设置右边层顺时针转动 即R
+        right() {
+            //顶层转动会影响四个面颜色变化
+            let upColor = ["white", "orange", "yellow", "red"];
+            let colorNum = [
+                [8, 7, 6],
+                [0, 3, 6],
+                [6, 7, 8],
+                [6, 3, 0],
+            ];
+            let moveAside = "rightAside";
+            let clockwise = "36785210";
+            this.changeColor(upColor, colorNum, moveAside, clockwise);
+            this.showColor(this.colorData);
+        },
+
         //设置右边层逆时针转动 即R'
         rightReserve() {
             let upColor = ["red", "yellow", "orange", "white"];
@@ -437,6 +573,95 @@ export default {
                 [8, 7, 6],
             ];
             let moveAside = "rightAside";
+            let clockwise = "01258763";
+            this.changeColor(upColor, colorNum, moveAside, clockwise);
+            this.showColor(this.colorData);
+        },
+        //设置前面层逆时针转动 即F
+        frontReserve() {
+            //顶层转动会影响四个面颜色变化
+            let upColor = ["yellow", "green", "white", "blue"];
+            let colorNum = [
+                [0, 3, 6],
+                [0, 3, 6],
+                [6, 3, 0],
+                [6, 3, 0],
+            ];
+            let moveAside = "frontAside";
+            let clockwise = "36785210";
+            this.changeColor(upColor, colorNum, moveAside, clockwise);
+            this.showColor(this.colorData);
+        },
+        //设置前面层顺时针转动 即F
+         front() {
+            //顶层转动会影响四个面颜色变化
+            let upColor = ["yellow", "blue", "white", "green"]; //"red", "yellow", "orange", "white", "red"
+            let colorNum = [
+                [0, 3, 6],
+                [6, 3, 0],
+                [6, 3, 0],
+                [0, 3, 6],
+            ];
+            let moveAside = "frontAside";
+            let clockwise = "01258763";
+
+             this.changeColor(upColor, colorNum, moveAside, clockwise);
+             this.showColor(this.colorData);
+        },
+        //设置左边层顺时针转动 即L
+        left() {
+            //顶层转动会影响四个面颜色变化
+            let upColor = ["red", "yellow", "orange", "white"];
+            let colorNum = [
+                [8, 5, 2],
+                [0, 1, 2],
+                [2, 5, 8],
+                [2, 1, 0],
+            ];
+            let moveAside = "leftAside"; //36785210
+            let clockwise = "01258763";
+            this.changeColor(upColor, colorNum, moveAside, clockwise);
+            this.showColor(this.colorData);
+        },
+        //设置左边层逆时针转动 即L'
+        leftReserve() {
+            //顶层转动会影响四个面颜色变化
+            let upColor = ["red", "white", "orange", "yellow"];
+            let colorNum = [
+                [8, 5, 2],
+                [2, 1, 0],
+                [2, 5, 8],
+                [0, 1, 2],
+            ];
+            let moveAside = "leftAside";
+            let clockwise = "36785210";
+            this.changeColor(upColor, colorNum, moveAside, clockwise);
+            this.showColor(this.colorData);
+        },
+        //设置背面层顺时针转动 即B
+        back() {
+            let upColor = ["yellow", "green", "white", "blue"];
+            let colorNum = [
+                [2, 5, 8],
+                [2, 5, 8],
+                [8, 5, 2],
+                [8, 5, 2],
+            ];
+            let moveAside = "backAside";
+            let clockwise = "36785210";
+            this.changeColor(upColor, colorNum, moveAside, clockwise);
+            this.showColor(this.colorData);
+        },
+        //设置背面层逆时针转动 即B'
+        backReserve() {
+            let upColor = ["yellow", "blue", "white", "green"];
+            let colorNum = [
+                [2, 5, 8],
+                [8, 5, 2],
+                [8, 5, 2],
+                [2, 5, 8],
+            ];
+            let moveAside = "backAside";
             let clockwise = "01258763";
             this.changeColor(upColor, colorNum, moveAside, clockwise);
             this.showColor(this.colorData);
@@ -516,10 +741,6 @@ export default {
 </script>
 
 <style lang="less" scoped>
-
-
-
-
         .container {
             width: 95%;
             height: 110px;
